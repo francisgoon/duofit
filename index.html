@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two-Person Conditioning Log</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#161b23;
+    --panel2:#1d242f;
+    --border:#2a3342;
+    --text:#e8edf4;
+    --muted:#8b98ab;
+    --accent:#4dd882;
+    --accent2:#3aa9f0;
+    --danger:#f0644d;
+    --warn:#f0b64d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI", Arial, sans-serif;
+    line-height:1.5;
+    padding:20px 16px 60px;
+  }
+  header{
+    max-width:980px;margin:0 auto 6px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  header .logo{
+    width:42px;height:42px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:18px;color:#0b0e12;
+  }
+  header h1{font-size:1.45rem;letter-spacing:.5px;}
+  header p{color:var(--muted);font-size:.9rem;}
+  .datebar{
+    max-width:980px;margin:10px auto 18px;
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:10px 16px;flex-wrap:wrap;gap:8px;
+  }
+  .datebar .today{font-weight:600;}
+  .datebar .tag{color:var(--muted);font-size:.85rem;}
+  .person-switch{
+    display:flex;gap:8px;
+  }
+  .person-switch button{
+    background:var(--panel2);color:var(--muted);
+    border:1px solid var(--border);border-radius:999px;
+    padding:6px 16px;cursor:pointer;font-size:.9rem;font-weight:600;
+  }
+  .person-switch button.active{
+    background:var(--accent);color:#0b0e12;border-color:var(--accent);
+  }
+  main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:20px;}
+  section.card{
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:14px;padding:18px;
+  }
+  .card-head{
+    display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;
+  }
+  .card-head .icon{
+    width:34px;height:34px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:17px;
+  }
+  section.diet .icon{background:#3a2f1a;color:var(--warn);}
+  section.exercise .icon{background:#1a2a3a;color:var(--accent2);}
+  section.recovery .icon{background:#1a3a2a;color:var(--accent);}
+  .card-head h2{font-size:1.15rem;}
+  .card-head .forperson{
+    margin-left:auto;font-size:.8rem;color:var(--muted);
+    border:1px solid var(--border);border-radius:999px;padding:3px 12px;
+  }
+  .card p.purpose{color:var(--muted);font-size:.88rem;margin-bottom:14px;}
+  .entries{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+  .entry{
+    background:var(--panel2);border:1px solid var(--border);
+    border-left:4px solid var(--muted);
+    border-radius:8px;padding:10px 14px;
+  }
+  section.diet .entry{border-left-color:var(--warn);}
+  section.exercise .entry{border-left-color:var(--accent2);}
+  section.recovery .entry{border-left-color:var(--accent);}
+  .entry .meta{
+    display:flex;gap:10px;flex-wrap:wrap;
+    font-size:.78rem;color:var(--muted);margin-bottom:3px;
+  }
+  .entry .meta .who{color:var(--text);font-weight:600;}
+  .entry .note{font-size:.93rem;}
+  .addform{
+    display:flex;gap:8px;flex-wrap:wrap;
+    background:var(--panel2);border:1px dashed var(--border);
+    border-radius:10px;padding:12px;
+  }
+  .addform input[type="text"], .addform select, .addform input[type="number"]{
+    background:var(--bg);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:8px 12px;font-size:.9rem;
+  }
+  .addform input[type="text"]{flex:1;min-width:200px;}
+  .addform button{
+    background:var(--accent);color:#0b0e12;border:none;border-radius:8px;
+    padding:8px 20px;font-weight:700;cursor:pointer;font-size:.9rem;
+  }
+  .addform button:hover{filter:brightness(1.1);}
+  .addform .fieldlabel{
+    width:100%;font-size:.78rem;color:var(--muted);font-weight:600;
+    text-transform:uppercase;letter-spacing:.5px;
+  }
+  .micbtn{
+    background:var(--panel);color:var(--muted);
+    border:1px solid var(--border);border-radius:8px;
+    width:42px;cursor:pointer;font-size:1.05rem;flex:0 0 42px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .micbtn:hover{color:var(--text);}
+  .micbtn.listening{
+    background:var(--danger);color:#fff;border-color:var(--danger);
+    animation:pulse 1.2s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.55;}
+  }
+  .voice-status{
+    width:100%;font-size:.8rem;color:var(--muted);min-height:1em;
+  }
+  .voice-status.error{color:var(--danger);}
+  /* summary */
+  .summary{
+    background:linear-gradient(135deg,#18202b,#141a22);
+    border:1px solid var(--border);border-radius:14px;padding:18px;
+  }
+  .summary h2{font-size:1.15rem;margin-bottom:4px;}
+  .summary p.purpose{color:var(--muted);font-size:.88rem;margin-bottom:14px;}
+  .summary-grid{display:flex;gap:16px;flex-wrap:wrap;}
+  .summary-person{
+    flex:1;min-width:280px;background:var(--panel2);
+    border:1px solid var(--border);border-radius:10px;padding:14px;
+  }
+  .summary-person h3{font-size:1rem;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .summary-person h3 .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);}
+  .summary-person.father h3 .dot{background:var(--warn);}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .stat{
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    padding:8px 14px;min-width:90px;text-align:center;
+  }
+  .stat .num{font-size:1.3rem;font-weight:800;color:var(--accent);}
+  .stat .lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .common{font-size:.86rem;color:var(--muted);}
+  .common b{color:var(--text);}
+  .empty-summary{color:var(--muted);font-size:.9rem;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">2P</div>
+  <div>
+    <h1>Two-Person Conditioning Log</h1>
+    <p>Father &amp; son daily training log — diet, exercise, recovery. Sample data only; nothing is saved between visits.</p>
+  </div>
+</header>
+
+<div class="datebar">
+  <div>
+    <span class="today" id="todayDate"></span>
+    <span class="tag"> · today</span>
+  </div>
+  <div class="person-switch" id="personSwitch">
+    <button data-person="father" class="active">Ayah (44)</button>
+    <button data-person="son">Son (14, U14 football)</button>
+  </div>
+</div>
+
+<main>
+
+  <section class="card diet">
+    <div class="card-head">
+      <div class="icon">🍚</div>
+      <h2>Diet — meals &amp; drinks</h2>
+      <span class="forperson" id="dietFor">for: Ayah</span>
+    </div>
+    <p class="purpose">Record what was eaten and drunk, rough portion, and timing around training.</p>
+    <div class="entries" id="dietEntries"></div>
+    <form class="addform" data-section="diet">
+      <span class="fieldlabel">Add diet note for selected person</span>
+      <input type="text" name="note" placeholder="e.g. Nasi + ayam panggang + sayur, air kosong 500ml, 1 jam sebelum training" required>
+      <select name="timing">
+        <option value="before training">before training</option>
+        <option value="after training" selected>after training</option>
+        <option value="regular meal">regular meal</option>
+      </select>
+      <button type="button" class="micbtn" title="Voice note — click and speak" aria-label="Voice note">🎙</button>
+      <button type="submit">Add diet note</button>
+      <span class="voice-status"></span>
+    </form>
+  </section>
+
+  <section class="card exercise">
+    <div class="card-head">
+      <div class="icon">⚽</div>
+      <h2>Exercise — training &amp; drills</h2>
+      <span class="forperson" id="exerciseFor">for: Ayah</span>
+    </div>
+    <p class="purpose">Record training type, duration or sets/reps, and how hard it felt (RPE 1–5).</p>
+    <div class="entries" id="exerciseEntries"></div>
+    <form class="addform" data-section="exercise">
+      <span class="fieldlabel">Add exercise note for selected person</span>
+      <input type="text" name="note" placeholder="e.g. Evening walk 40 min, then 2x10 push-ups" required>
+      <input type="number" name="duration" placeholder="Duration (min)" min="1" max="300" style="width:130px">
+      <select name="rpe">
+        <option value="1">Effort 1 (easy)</option>
+        <option value="2">Effort 2</option>
+        <option value="3" selected>Effort 3 (moderate)</option>
+        <option value="4">Effort 4 (hard)</option>
+        <option value="5">Effort 5 (max)</option>
+      </select>
+      <button type="button" class="micbtn" title="Voice note — click and speak" aria-label="Voice note">🎙</button>
+      <button type="submit">Add exercise note</button>
+      <span class="voice-status"></span>
+    </form>
+  </section>
+
+  <section class="card recovery">
+    <div class="card-head">
+      <div class="icon">😴</div>
+      <h2>Recovery — sleep &amp; body feel</h2>
+      <span class="forperson" id="recoveryFor">for: Ayah</span>
+    </div>
+    <p class="purpose">Record sleep hours, energy, mood/stress, and soreness so patterns show up over the week.</p>
+    <div class="entries" id="recoveryEntries"></div>
+    <form class="addform" data-section="recovery">
+      <span class="fieldlabel">Add recovery note for selected person</span>
+      <input type="text" name="note" placeholder="e.g. Slept well, thighs still sore from drills" required>
+      <input type="number" name="sleep" placeholder="Sleep (hrs)" min="0" max="16" step="0.5" style="width:120px">
+      <select name="energy">
+        <option value="1">Energy 1/5</option>
+        <option value="2">Energy 2/5</option>
+        <option value="3" selected>Energy 3/5</option>
+        <option value="4">Energy 4/5</option>
+        <option value="5">Energy 5/5</option>
+      </select>
+      <button type="button" class="micbtn" title="Voice note — click and speak" aria-label="Voice note">🎙</button>
+      <button type="submit">Add recovery note</button>
+      <span class="voice-status"></span>
+    </form>
+  </section>
+
+  <section class="summary">
+    <h2>Progress summary</h2>
+    <p class="purpose">Recent patterns for each person, based on the entries logged in this session.</p>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  var PEOPLE = {
+    father: { name: "Ayah", cls: "father" },
+    son:    { name: "Son",  cls: "son" }
+  };
+  var today = new Date().toLocaleDateString("en-MY", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  document.getElementById("todayDate").textContent = today;
+
+  var selected = "father";
+  var entries = { diet: [], exercise: [], recovery: [] };
+
+  // ---- sample data (made up, Malaysia-specific) ----
+  entries.diet = [
+    { person:"father", note:"Nasi + grilled chicken + ulam, air kosong 500ml — small rice portion for cholesterol plan", timing:"regular meal" },
+    { person:"son",    note:"Kaya toast + telur + susu — breakfast before school", timing:"regular meal" },
+    { person:"father", note:"Steamed fish + broccoli + brown rice, teh o kosong", timing:"after training" }
+  ];
+  entries.exercise = [
+    { person:"father", note:"Evening walk at Taman — brisk pace", duration:40, rpe:"2" },
+    { person:"son",    note:"Team training — passing drills + small-sided game", duration:90, rpe:"4" },
+    { person:"son",    note:"Sprint intervals 6x40m + core work (plank 3x30s)", duration:45, rpe:"4" }
+  ];
+  entries.recovery = [
+    { person:"father", note:"Slept okay, stress from work still high, legs feel fine", sleep:"6.5", energy:"3" },
+    { person:"son",    note:"Calves sore after drills, mood good", sleep:"8", energy:"4" },
+    { person:"father", note:"Rest day feel — mild knee stiffness, energy low in the morning", sleep:"7", energy:"2" }
+  ];
+
+  // ---- rendering ----
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function renderEntries(section){
+    var box = document.getElementById(section + "Entries");
+    box.innerHTML = "";
+    var list = entries[section].filter(function(e){ return e.person === selected; });
+    list.forEach(function(e){
+      var item = el("div", "entry");
+      var meta = el("div", "meta");
+      meta.appendChild(el("span", "who", PEOPLE[e.person].name));
+      meta.appendChild(el("span", null, e.timing ? "Timing: " + e.timing : ""));
+      if (e.duration) meta.appendChild(el("span", null, "Duration: " + e.duration + " min"));
+      if (e.rpe)      meta.appendChild(el("span", null, "Effort: " + e.rpe + "/5"));
+      if (e.sleep)    meta.appendChild(el("span", null, "Sleep: " + e.sleep + " hrs"));
+      if (e.energy)   meta.appendChild(el("span", null, "Energy: " + e.energy + "/5"));
+      item.appendChild(meta);
+      item.appendChild(el("div", "note", e.note));
+      box.appendChild(item);
+    });
+    if (!list.length) box.appendChild(el("div", "empty-summary", "No entries yet for " + PEOPLE[selected].name + " — add one below."));
+  }
+
+  function renderSummary(){
+    var grid = document.getElementById("summaryGrid");
+    grid.innerHTML = "";
+    Object.keys(PEOPLE).forEach(function(pid){
+      var box = el("div", "summary-person " + PEOPLE[pid].cls);
+      var head = el("h3");
+      head.appendChild(el("span", "dot"));
+      head.appendChild(el("span", null, PEOPLE[pid].name + (pid === "son" ? " — U14 football prep" : " — health reset")));
+      box.appendChild(head);
+
+      var total = { diet:0, exercise:0, recovery:0 };
+      var days = {};
+      ["diet","exercise","recovery"].forEach(function(s){
+        entries[s].forEach(function(e){
+          if (e.person === pid){ total[s]++; days[today] = true; }
+        });
+      });
+      var daysLogged = Object.keys(days).length;
+
+      var stats = el("div", "stats");
+      [[total.diet,"diet notes"],[total.exercise,"exercise notes"],[total.recovery,"recovery notes"],[daysLogged,"days logged"]].forEach(function(p){
+        var s = el("div", "stat");
+        s.appendChild(el("div", "num", String(p[0])));
+        s.appendChild(el("div", "lbl", p[1]));
+        stats.appendChild(s);
+      });
+      box.appendChild(stats);
+
+      // most common keyword among this person's notes
+      var words = {};
+      ["diet","exercise","recovery"].forEach(function(s){
+        entries[s].forEach(function(e){
+          if (e.person !== pid) return;
+          e.note.toLowerCase().replace(/[^a-z\s]/g," ").split(/\s+/).forEach(function(w){
+            if (w.length > 4) words[w] = (words[w]||0) + 1;
+          });
+        });
+      });
+      var top = Object.keys(words).sort(function(a,b){ return words[b]-words[a]; }).slice(0,3);
+      var common = el("div", "common");
+      if (top.length){
+        common.innerHTML = "Common themes: ";
+        top.forEach(function(w,i){
+          if (i) common.appendChild(document.createTextNode(", "));
+          var b = el("b", null, w);
+          common.appendChild(b);
+        });
+      } else {
+        common.textContent = "No entries yet — log a few notes to see patterns.";
+      }
+      box.appendChild(common);
+      grid.appendChild(box);
+    });
+  }
+
+  function renderAll(){
+    ["diet","exercise","recovery"].forEach(renderEntries);
+    renderSummary();
+    document.getElementById("dietFor").textContent = "for: " + PEOPLE[selected].name;
+    document.getElementById("exerciseFor").textContent = "for: " + PEOPLE[selected].name;
+    document.getElementById("recoveryFor").textContent = "for: " + PEOPLE[selected].name;
+  }
+
+  // ---- person switch ----
+  document.getElementById("personSwitch").addEventListener("click", function(ev){
+    var btn = ev.target.closest("button");
+    if (!btn) return;
+    selected = btn.getAttribute("data-person");
+    document.querySelectorAll(".person-switch button").forEach(function(b){
+      b.classList.toggle("active", b === btn);
+    });
+    renderAll();
+  });
+
+  // ---- voice notes (Web Speech API, Chrome/Edge) ----
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var activeRecognition = null;
+  var activeButton = null;
+
+  function setVoiceStatus(form, msg, isError){
+    var status = form.querySelector(".voice-status");
+    if (!status) return;
+    status.textContent = msg || "";
+    status.classList.toggle("error", !!isError);
+  }
+
+  function stopListening(){
+    if (activeRecognition){
+      try { activeRecognition.stop(); } catch(err) {}
+      activeRecognition = null;
+    }
+    if (activeButton){
+      activeButton.classList.remove("listening");
+      activeButton = null;
+    }
+  }
+
+  function startVoiceNote(form, micButton){
+    if (!SpeechRecognition){
+      setVoiceStatus(form, "Voice notes need Chrome or Edge on this laptop — typing still works everywhere.", true);
+      return;
+    }
+    // one mic at a time
+    stopListening();
+
+    var recognition = new SpeechRecognition();
+    recognition.lang = "en-MY";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    var noteInput = form.note;
+    var finalText = noteInput.value ? noteInput.value.trim() + " " : "";
+
+    activeRecognition = recognition;
+    activeButton = micButton;
+    micButton.classList.add("listening");
+    setVoiceStatus(form, "Listening… speak your note, click the mic again to stop.");
+
+    recognition.onresult = function(event){
+      var interim = "";
+      for (var i = event.resultIndex; i < event.results.length; i++){
+        var chunk = event.results[i][0].transcript;
+        if (event.results[i].isFinal){
+          finalText += chunk + " ";
+        } else {
+          interim += chunk;
+        }
+      }
+      noteInput.value = (finalText + interim).trim();
+    };
+    recognition.onerror = function(event){
+      var messages = {
+        "not-allowed": "Microphone blocked — allow mic access for this page, then click the mic again.",
+        "service-not-allowed": "Microphone blocked — allow mic access for this page, then click the mic again.",
+        "no-speech": "No speech heard — click the mic and speak again.",
+        "network": "Speech service needs an internet connection — type the note instead."
+      };
+      setVoiceStatus(form, messages[event.error] || "Voice input failed (" + event.error + ") — type the note instead.", true);
+      stopListening();
+    };
+    recognition.onend = function(){
+      if (activeRecognition === recognition){
+        if (noteInput.value.trim()){
+          setVoiceStatus(form, "Voice captured — review the text, then click Add.");
+        } else {
+          setVoiceStatus(form, "", false);
+        }
+        stopListening();
+      }
+    };
+    try { recognition.start(); }
+    catch(err){
+      setVoiceStatus(form, "Could not start the microphone — try again.", true);
+      stopListening();
+    }
+  }
+
+  document.querySelectorAll(".addform").forEach(function(form){
+    var micButton = form.querySelector(".micbtn");
+    micButton.addEventListener("click", function(){
+      if (activeButton === micButton){ stopListening(); }
+      else { startVoiceNote(form, micButton); }
+    });
+  });
+
+  // ---- quick add ----
+  document.querySelectorAll(".addform").forEach(function(form){
+    form.addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var section = form.getAttribute("data-section");
+      var note = form.note.value.trim();
+      if (!note) return;
+      var e = { person: selected, note: note };
+      if (section === "diet")       e.timing = form.timing.value;
+      if (section === "exercise"){   e.duration = form.duration.value || null; e.rpe = form.rpe.value; }
+      if (section === "recovery"){   e.sleep = form.sleep.value || null;       e.energy = form.energy.value; }
+      entries[section].unshift(e);
+      form.note.value = "";
+      form.duration && (form.duration.value = "");
+      form.sleep && (form.sleep.value = "");
+      setVoiceStatus(form, "", false);
+      renderAll();
+    });
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
